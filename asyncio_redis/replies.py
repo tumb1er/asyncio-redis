@@ -74,6 +74,16 @@ class DictReply:
             result[key] = value
         return result
 
+    def todict(self):
+        i = iter(self._result.queue._queue)
+        result = {}
+        for k, v in zip(i, i):
+            k = self._result._auto_decode(k)
+            v = self._result._auto_decode(v)
+            k, v= self._parse(k, v)
+            result[k] = v
+        return result
+
     def __repr__(self):
         return '%s(length=%r)' % (self.__class__.__name__, int(self._result.count / 2))
 
@@ -112,6 +122,11 @@ class SetReply:
         result = yield from gather(* list(self._result), loop=self._result._loop)
         return set(result)
 
+    def toset(self):
+        i = iter(self._result.queue._queue)
+        result = set(map(self._result._auto_decode, i))
+        return result
+
     def __repr__(self):
         return 'SetReply(length=%r)' % (self._result.count)
 
@@ -139,6 +154,11 @@ class ListReply:
     def aslist(self):
         """ Return the result as a Python ``list``. """
         return gather(* list(self._result), loop=self._result._loop)
+
+    def tolist(self):
+        i = iter(self._result.queue._queue)
+        result = list(map(self._result._auto_decode, i))
+        return result
 
     def __repr__(self):
         return 'ListReply(length=%r)' % (self._result.count, )

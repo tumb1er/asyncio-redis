@@ -2212,6 +2212,39 @@ class HiRedisProtocolTest(RedisProtocolTest):
         super().setUp()
         self.protocol_class = HiRedisProtocol
 
+    @redis_test
+    def test_todict(self, transport, protocol):
+        # zrange for DictReply
+        yield from protocol.zadd('myzset', { 'key': 4, 'key2': 5, 'key3': 5.5 })
+        result = yield from protocol.zrange('myzset')
+        self.assertIsInstance(result, ZRangeReply)
+        r = yield from result.asdict()
+        result = yield from protocol.zrange('myzset')
+        self.assertEqual(result.todict(), r)
+
+    @redis_test
+    def test_tolist(self, transport, protocol):
+        # mget for ListReply
+        yield from protocol.set(u'my_key', u'a')
+        yield from protocol.set(u'my_key2', u'b')
+        result = yield from protocol.mget([ u'my_key', u'my_key2', u'not_exists'])
+        self.assertIsInstance(result, ListReply)
+        r = yield from result.aslist()
+        result = yield from protocol.mget([ u'my_key', u'my_key2', u'not_exists'])
+        self.assertEqual(result.tolist(), r)
+
+    @redis_test
+    def test_toset(self, transport, protocol):
+        # smembers for SetReply
+        yield from protocol.delete([ u'our_set' ])
+        yield from protocol.sadd(u'our_set', [u'a', u'b'])
+
+        result = yield from protocol.smembers(u'our_set')
+        self.assertIsInstance(result, SetReply)
+        r = yield from result.asset()
+        result = yield from protocol.smembers(u'our_set')
+        self.assertEqual(result.toset(), r)
+
 
 class HiRedisBytesProtocolTest(RedisBytesProtocolTest):
     def setUp(self):

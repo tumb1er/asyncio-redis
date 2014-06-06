@@ -123,6 +123,17 @@ class MultiBulkReply:
         for i in range(self.count):
             yield self.queue.get()
 
+    def _auto_decode(self, result):
+        if isinstance(result, (StatusReply, int, float, MultiBulkReply)):
+            # Note that MultiBulkReplies can be nested. e.g. in the 'scan' operation.
+            return result
+        elif isinstance(result, bytes):
+            return self.protocol.decode_to_native(result)
+        elif result is None:
+            return result
+        else:
+            raise AssertionError('Invalid type: %r' % type(result))
+
     def __iter__(self):
         """
         Iterate over the reply. This yields coroutines of the decoded packets.
@@ -131,15 +142,7 @@ class MultiBulkReply:
         @asyncio.coroutine
         def auto_decode(f):
             result = yield from f
-            if isinstance(result, (StatusReply, int, float, MultiBulkReply)):
-                # Note that MultiBulkReplies can be nested. e.g. in the 'scan' operation.
-                return result
-            elif isinstance(result, bytes):
-                return self.protocol.decode_to_native(result)
-            elif result is None:
-                return result
-            else:
-                raise AssertionError('Invalid type: %r' % type(result))
+            return self._auto_decode(result)
 
         for f in self.iter_raw():
             # We should immediately wrap this coroutine in async(), to be sure
