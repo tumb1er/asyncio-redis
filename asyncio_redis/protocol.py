@@ -2396,5 +2396,5 @@ class HiRedisProtocol(RedisProtocol, metaclass=_RedisProtocolMeta):
         for token in data:
             if isinstance(token, list):
                 token = self._parse_multi_bulk_from_list(token)
-            reply.queue.put_nowait(token)
+            reply.queue._queue.append(token)
         return reply
