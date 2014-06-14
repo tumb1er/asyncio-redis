@@ -47,11 +47,24 @@ def test3(connection):
 
     assert d2 == d
 
+@asyncio.coroutine
+def test4(connection):
+    """ Get/set of large hashes (with todict(), without any async answer waiting) """
+    d = { str(i):str(i) for i in range(100) }
+
+    yield from connection.delete(['key'])
+    yield from connection.hmset('key', d)
+
+    result = yield from connection.hgetall('key')
+    d2 = result.todict()
+    assert d2 == d
+
 
 benchmarks = [
         (1000, test1),
         (100, test2),
         (100, test3),
+        (100, test4),
 ]
 
 
