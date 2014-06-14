@@ -10,7 +10,7 @@ from asyncio.streams import StreamReader
 try:
     import hiredis
 except ImportError:
-    pass
+    hiredis = None
 
 from collections import deque
 from functools import wraps
@@ -2302,14 +2302,13 @@ class Subscription:
 
 
 class HiRedisProtocol(RedisProtocol, metaclass=_RedisProtocolMeta):
-
-
     def __init__(self, password=None, db=0, encoder=None,
                  connection_lost_callback=None, enable_typechecking=True,
                  loop=None):
         super().__init__(password, db, encoder, connection_lost_callback,
                          enable_typechecking, loop)
         self._hiredis = None
+        assert hiredis, "`hiredis` libary not available. Please don't use HiRedisProtocol."
 
     def connection_made(self, transport):
         super().connection_made(transport)
@@ -2318,7 +2317,8 @@ class HiRedisProtocol(RedisProtocol, metaclass=_RedisProtocolMeta):
 
     @asyncio.coroutine
     def _read_lines(self):
-        """ Reads blocks from transport and returns all completed lines.
+        """
+        Reads blocks from transport and returns all completed lines.
 
         Unused data already read from stream is cached for next line.
         """
@@ -2337,7 +2337,8 @@ class HiRedisProtocol(RedisProtocol, metaclass=_RedisProtocolMeta):
 
     @asyncio.coroutine
     def _handle_item(self, cb):
-        """ Feeds HiRedis parser line-by-line, and handle all parsed results.
+        """
+        Feeds HiRedis parser line-by-line, and handle all parsed results.
 
         if hiredis returns completed reply, passes it to corresponding callback
         found by first character of first processed line.
@@ -2381,7 +2382,9 @@ class HiRedisProtocol(RedisProtocol, metaclass=_RedisProtocolMeta):
         if result is None:
             cb(None)
             return
+
         reply = self._parse_multi_bulk_from_list(result)
+
         # Return the empty queue immediately as an answer.
         if self._in_pubsub:
             asyncio.async(self._handle_pubsub_multibulk_reply(reply),
@@ -2390,7 +2393,8 @@ class HiRedisProtocol(RedisProtocol, metaclass=_RedisProtocolMeta):
             cb(reply)
 
     def _parse_multi_bulk_from_list(self, data):
-        """ Resursively constructs MultyBulkReply from list structure
+        """
+        Resursively constructs MultyBulkReply from list structure
         returned by hiredis parser.
 
         Helpful for parsing transaction and script replies.
